@@ -3,7 +3,7 @@ import { Button, Empty, Input, message as antdMessage } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { streamChat } from '../../api/chat';
 import { createSession, deleteSession, getSession, listSessions } from '../../api/client';
-import type { Message, Session } from '../../types';
+import type { Message, Session, ToolCall } from '../../types';
 import MessageItem from './MessageItem';
 import SessionList from './SessionList';
 import styles from './Chat.module.css';
@@ -69,11 +69,52 @@ export default function ChatPage() {
     }
   };
 
+  // 流式渲染缓冲：SSE 逐 token 到达，先攒入缓冲区，每帧批量提交一次，
+  // 避免每个 token 都触发全量重渲染 + Markdown 重解析。
+  // RAF 在后台标签页或 headless 环境可能不触发，故同时挂 100ms 定时器兜底，先触发者生效。
+  const streamBuf = useRef<{ deltas: string[]; toolCalls: ToolCall[] }>({ deltas: [], toolCalls: [] });
+  const rafId = useRef<number | null>(null);
+  const timerId = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelScheduled = () => {
+    if (rafId.current !== null) cancelAnimationFrame(rafId.current);
+    if (timerId.current !== null) clearTimeout(timerId.current);
+    rafId.current = null;
+    timerId.current = null;
+  };
+
+  const flushStream = () => {
+    cancelScheduled();
+    const { deltas, toolCalls } = streamBuf.current;
+    if (deltas.length === 0 && toolCalls.length === 0) return;
+    streamBuf.current = { deltas: [], toolCalls: [] };
+    setMessages((prev) => {
+      const next = [...prev];
+      const last = next[next.length - 1];
+      next[next.length - 1] = {
+        ...last,
+        content: last.content + deltas.join(''),
+        tool_calls: [...(last.tool_calls ?? []), ...toolCalls],
+      };
+      return next;
+    });
+  };
+
+  const scheduleFlush = () => {
+    if (rafId.current !== null || timerId.current !== null) return;
+    rafId.current = requestAnimationFrame(flushStream);
+    timerId.current = setTimeout(flushStream, 100);
+  };
+
+  // 组件卸载时取消未执行的调度
+  useEffect(() => cancelScheduled, []);
+
   const handleSend = async (text?: string) => {
     const content = (text ?? input).trim();
     if (!content || !activeId || streaming) return;
     setInput('');
     setStreaming(true);
+    streamBuf.current = { deltas: [], toolCalls: [] };
 
     // 先上屏用户消息和一条占位的助手消息
     setMessages((prev) => [
@@ -86,22 +127,16 @@ export default function ChatPage() {
       await streamChat(activeId, content, (event) => {
         if (event.type === 'tool_call') {
           const { type: _, ...call } = event;
-          setMessages((prev) => {
-            const next = [...prev];
-            const last = next[next.length - 1];
-            next[next.length - 1] = { ...last, tool_calls: [...(last.tool_calls ?? []), call] };
-            return next;
-          });
+          streamBuf.current.toolCalls.push(call);
+          scheduleFlush();
         } else if (event.type === 'delta') {
-          setMessages((prev) => {
-            const next = [...prev];
-            const last = next[next.length - 1];
-            next[next.length - 1] = { ...last, content: last.content + event.content };
-            return next;
-          });
+          streamBuf.current.deltas.push(event.content);
+          scheduleFlush();
         } else if (event.type === 'error') {
           antdMessage.error(`回答出错：${event.message}`);
         } else if (event.type === 'done') {
+          // 流结束：取消挂起的调度并立即冲刷剩余缓冲，保证内容完整
+          flushStream();
           // 首条消息会更新会话标题，刷新列表
           void listSessions().then(setSessions);
         }
