@@ -1,0 +1,51 @@
+.container {
+  width: 240px;
+  background: #fff;
+  border-right: 1px solid #e6f0ff;
+  padding: 12px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.createBtn {
+  margin-bottom: 12px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.item:hover {
+  background: #f0f7ff;
+}
+
+.active {
+  background: #e6f4ff;
+}
+
+.itemIcon {
+  color: #4c9aff;
+  margin-right: 8px;
+}
+
+.itemTitle {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.deleteIcon {
+  color: #999;
+  visibility: hidden;
+}
+
+.item:hover .deleteIcon {
+  visibility: visible;
+}

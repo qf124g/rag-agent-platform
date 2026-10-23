@@ -1,0 +1,11 @@
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.card {
+  margin-bottom: 24px;
+}

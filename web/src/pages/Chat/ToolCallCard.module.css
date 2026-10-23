@@ -1,0 +1,57 @@
+.card {
+  background: #f8fbff;
+  border: 1px solid #d6e8ff;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.cardTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #1d39c4;
+}
+
+.fieldRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: baseline;
+}
+
+.fieldLabel {
+  color: #888;
+  flex-shrink: 0;
+}
+
+.sqlCode {
+  background: #eef4ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.sourceItem {
+  margin-bottom: 8px;
+}
+
+.sourceContent {
+  margin-top: 4px;
+  color: #555;
+  background: #fff;
+  border: 1px dashed #d6e8ff;
+  border-radius: 6px;
+  padding: 8px;
+  white-space: pre-wrap;
+}
+
+.emptyResult {
+  color: #999;
+}
+
+.rawResult {
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #555;
+}

@@ -1,0 +1,49 @@
+.row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  align-items: flex-start;
+}
+
+.rowUser {
+  flex-direction: row-reverse;
+}
+
+.avatarBot {
+  background: linear-gradient(135deg, #4c9aff, #1d6fe0);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(76, 154, 255, 0.35);
+}
+
+.avatarUser {
+  background: linear-gradient(135deg, #8fd478, #5daf46);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(93, 175, 70, 0.3);
+}
+
+.bubble {
+  max-width: 78%;
+  min-width: 0; /* 允许收缩，保证内部表格滚动而不是撑破气泡 */
+  padding: 12px 18px;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.bubbleUser {
+  background: linear-gradient(135deg, #5ba3ff, #3d8bff);
+  color: #fff;
+  border-radius: 14px 14px 4px 14px;
+  box-shadow: 0 2px 8px rgba(76, 154, 255, 0.3);
+}
+
+.userText {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bubbleBot {
+  background: #fff;
+  border: 1px solid #e9f1fd;
+  border-radius: 4px 14px 14px 14px;
+  box-shadow: 0 2px 10px rgba(29, 57, 196, 0.06);
+}

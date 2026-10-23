@@ -1,0 +1,28 @@
+.layout {
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #e6f0ff;
+  padding: 0 24px;
+}
+
+.logo {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d39c4;
+  margin-right: 48px;
+  white-space: nowrap;
+}
+
+.menu {
+  flex: 1;
+  border-bottom: none;
+}
+
+.content {
+  overflow: hidden;
+}

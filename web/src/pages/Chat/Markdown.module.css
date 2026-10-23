@@ -1,0 +1,225 @@
+/* Markdown 排版样式：白底浅蓝主题下的精致阅读体验 */
+.markdown {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #2b3a55;
+  word-break: break-word;
+}
+
+/* ---------- 段落与标题 ---------- */
+.markdown p {
+  margin: 0 0 10px;
+}
+
+.markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  margin: 18px 0 10px;
+  font-weight: 600;
+  color: #1f2d4d;
+  line-height: 1.4;
+}
+
+.markdown h1:first-child,
+.markdown h2:first-child,
+.markdown h3:first-child,
+.markdown h4:first-child {
+  margin-top: 0;
+}
+
+.markdown h1 {
+  font-size: 20px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e6f0ff;
+}
+
+.markdown h2 {
+  font-size: 17px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #eef4ff;
+}
+
+.markdown h3 {
+  font-size: 15px;
+}
+
+.markdown h4 {
+  font-size: 14px;
+}
+
+/* ---------- 列表 ---------- */
+.markdown ul,
+.markdown ol {
+  margin: 0 0 10px;
+  padding-left: 1.5em;
+}
+
+.markdown li {
+  margin-bottom: 4px;
+}
+
+.markdown li > ul,
+.markdown li > ol {
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+/* ---------- 表格：容器内横向滚动，不挤压变形 ---------- */
+.tableWrapper {
+  overflow-x: auto;
+  margin: 0 0 12px;
+  border: 1px solid #e6f0ff;
+  border-radius: 8px;
+  max-width: 100%;
+}
+
+.tableWrapper table {
+  border-collapse: collapse;
+  margin: 0;
+  min-width: 100%;
+  font-size: 13px;
+}
+
+.tableWrapper th {
+  background: #f0f7ff;
+  color: #1d39c4;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 8px 14px;
+  border-bottom: 1px solid #d6e8ff;
+  text-align: left;
+}
+
+.tableWrapper td {
+  padding: 8px 14px;
+  border-bottom: 1px solid #eef4ff;
+  white-space: nowrap;
+}
+
+.tableWrapper tr:last-child td {
+  border-bottom: none;
+}
+
+.tableWrapper tr:hover td {
+  background: #f8fbff;
+}
+
+/* ---------- 代码 ---------- */
+.markdown code {
+  background: #eef4ff;
+  color: #1d39c4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.markdown pre {
+  background: #f8fafd;
+  border: 1px solid #e6f0ff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 0 0 12px;
+}
+
+.markdown pre code {
+  background: transparent;
+  color: #2b3a55;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ---------- highlight.js GitHub Light 风格配色 ---------- */
+.markdown :global(.hljs-comment),
+.markdown :global(.hljs-quote) {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.markdown :global(.hljs-keyword),
+.markdown :global(.hljs-selector-tag),
+.markdown :global(.hljs-meta .hljs-keyword) {
+  color: #d73a49;
+}
+
+.markdown :global(.hljs-string),
+.markdown :global(.hljs-attr) {
+  color: #032f62;
+}
+
+.markdown :global(.hljs-number),
+.markdown :global(.hljs-literal) {
+  color: #005cc5;
+}
+
+.markdown :global(.hljs-title),
+.markdown :global(.hljs-name),
+.markdown :global(.hljs-built_in) {
+  color: #6f42c1;
+}
+
+.markdown :global(.hljs-type),
+.markdown :global(.hljs-class .hljs-title) {
+  color: #22863a;
+}
+
+/* ---------- 引用块 ---------- */
+.markdown blockquote {
+  margin: 0 0 12px;
+  padding: 8px 14px;
+  border-left: 3px solid #4c9aff;
+  background: #f0f7ff;
+  border-radius: 0 8px 8px 0;
+  color: #4a5a7a;
+}
+
+.markdown blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- 其他元素 ---------- */
+.markdown hr {
+  border: none;
+  border-top: 1px solid #e6f0ff;
+  margin: 16px 0;
+}
+
+.markdown strong {
+  color: #1f2d4d;
+  font-weight: 600;
+}
+
+.markdown a {
+  color: #4c9aff;
+  text-decoration: none;
+}
+
+.markdown a:hover {
+  text-decoration: underline;
+}
+
+/* 块级公式可能超宽，同样支持横向滚动 */
+.markdown :global(.katex-display) {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0;
+}
+
+/* ---------- 流式光标 ---------- */
+.cursor {
+  color: #4c9aff;
+  animation: blink 1s step-start infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
