@@ -10,23 +10,7 @@ interface Props {
   streaming?: boolean;
 }
 
-/**
- * 流式期间的表格生长处理：
- * 半截表格行（以 | 开头但行尾未闭合）先不渲染，避免显示残缺的管道符文本；
- * 等该行完整到达后自然追加进表格，视觉上表格逐行"生长"。
- */
-function trimIncompleteTableRow(content: string): string {
-  const lastNewline = content.lastIndexOf('\n');
-  if (lastNewline === -1) return content;
-  const lastLine = content.slice(lastNewline + 1).trimEnd();
-  if (lastLine.startsWith('|') && !lastLine.endsWith('|')) {
-    return content.slice(0, lastNewline);
-  }
-  return content;
-}
-
 export default function Markdown({ content, streaming }: Props) {
-  const display = streaming ? trimIncompleteTableRow(content) : content;
 
   return (
     <div className={styles.markdown}>
@@ -47,7 +31,7 @@ export default function Markdown({ content, streaming }: Props) {
           ),
         }}
       >
-        {display}
+        {content}
       </ReactMarkdown>
       {streaming && <span className={styles.cursor}>▍</span>}
     </div>
