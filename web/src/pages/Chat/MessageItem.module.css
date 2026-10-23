@@ -29,6 +29,12 @@
   font-size: 14px;
 }
 
+/* 流式期间锁定气泡宽度（被 max-width 截断即 78%），
+   内容在固定宽度内生长，避免表格/后续文本流入导致宽度反复跳动 */
+.bubbleStreaming {
+  width: 100%;
+}
+
 .bubbleUser {
   background: linear-gradient(135deg, #5ba3ff, #3d8bff);
   color: #fff;

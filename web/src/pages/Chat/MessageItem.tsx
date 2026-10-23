@@ -19,7 +19,11 @@ export default function MessageItem({ message, streaming }: Props) {
         icon={isUser ? <UserOutlined /> : <RobotOutlined />}
         className={isUser ? styles.avatarUser : styles.avatarBot}
       />
-      <div className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleBot}`}>
+      <div
+        className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleBot} ${
+          !isUser && streaming ? styles.bubbleStreaming : ''
+        }`}
+      >
         {/* Agent 工具调用过程展示在回答之前（过程先于最终结果发生） */}
         {message.tool_calls?.map((call, i) => (
           <ToolCallCard key={i} call={call} />
