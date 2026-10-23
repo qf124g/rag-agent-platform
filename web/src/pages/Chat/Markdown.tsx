@@ -26,7 +26,7 @@ function trimIncompleteTableRow(content: string): string {
 }
 
 export default function Markdown({ content, streaming }: Props) {
-  const display = content;
+  const display = streaming ? trimIncompleteTableRow(content) : content;
 
   return (
     <div className={styles.markdown}>
@@ -47,7 +47,7 @@ export default function Markdown({ content, streaming }: Props) {
           ),
         }}
       >
-        {content}
+        {display}
       </ReactMarkdown>
       {streaming && <span className={styles.cursor}>▍</span>}
     </div>

@@ -8,6 +8,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative; /* 供"查看最新内容"悬浮按钮定位 */
 }
 
 .messageList {
@@ -39,4 +40,29 @@
   background: #fff;
   border-top: 1px solid #e6f0ff;
   align-items: flex-end;
+}
+
+/* "查看最新内容"悬浮按钮：居中浮在输入区上方 */
+.jumpLatest {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 84px;
+  z-index: 10;
+  color: #1d39c4;
+  border-color: #b3d1ff;
+  background: #f0f7ff;
+  box-shadow: 0 4px 12px rgba(29, 57, 196, 0.18);
+  animation: jumpFadeIn 0.2s ease;
+}
+
+@keyframes jumpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }

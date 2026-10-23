@@ -1,4 +1,4 @@
-import { SendOutlined } from '@ant-design/icons';
+import { ArrowDownOutlined, SendOutlined } from '@ant-design/icons';
 import { Button, Empty, Input, message as antdMessage } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { streamChat } from '../../api/chat';
@@ -21,7 +21,10 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
+  const [showJump, setShowJump] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  // 是否贴底跟随：用户上翻阅读时不打扰，回到底部才恢复跟随
+  const stickToBottom = useRef(true);
 
   // 初始化：加载会话列表，没有则自动创建一个
   useEffect(() => {
@@ -36,16 +39,37 @@ export default function ChatPage() {
     })();
   }, []);
 
-  // 切换会话时加载历史消息
+  // 切换会话时加载历史消息，并恢复贴底跟随
   useEffect(() => {
     if (!activeId) return;
+    stickToBottom.current = true;
+    setShowJump(false);
     void getSession(activeId).then((detail) => setMessages(detail.messages));
   }, [activeId]);
 
-  // 消息变化时滚动到底部
+  // 消息变化时：贴底则跟随最新内容；用户上翻中则不打扰，提示有新内容
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
+    const el = listRef.current;
+    if (!el) return;
+    if (stickToBottom.current) {
+      el.scrollTo({ top: el.scrollHeight });
+    } else {
+      setShowJump(true);
+    }
   }, [messages]);
+
+  const handleScroll = () => {
+    const el = listRef.current;
+    if (!el) return;
+    stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    if (stickToBottom.current) setShowJump(false);
+  };
+
+  const jumpToLatest = () => {
+    stickToBottom.current = true;
+    setShowJump(false);
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
+  };
 
   const handleCreate = async () => {
     const created = await createSession();
@@ -115,6 +139,9 @@ export default function ChatPage() {
     setInput('');
     setStreaming(true);
     streamBuf.current = { deltas: [], toolCalls: [] };
+    // 用户主动发送消息，恢复贴底跟随
+    stickToBottom.current = true;
+    setShowJump(false);
 
     // 先上屏用户消息和一条占位的助手消息
     setMessages((prev) => [
@@ -160,7 +187,7 @@ export default function ChatPage() {
         onDelete={handleDelete}
       />
       <div className={styles.chatArea}>
-        <div className={styles.messageList} ref={listRef}>
+        <div className={styles.messageList} ref={listRef} onScroll={handleScroll}>
           {messages.length === 0 ? (
             <div className={styles.welcome}>
               <Empty description="开始提问吧，我可以检索知识库或查询业务数据" />
@@ -178,6 +205,18 @@ export default function ChatPage() {
             ))
           )}
         </div>
+        {/* 用户上翻阅读时有新内容到达，显示快捷回到底部按钮 */}
+        {showJump && (
+          <Button
+            className={styles.jumpLatest}
+            shape="round"
+            size="small"
+            icon={<ArrowDownOutlined />}
+            onClick={jumpToLatest}
+          >
+            查看最新内容
+          </Button>
+        )}
         <div className={styles.inputArea}>
           <Input.TextArea
             value={input}
