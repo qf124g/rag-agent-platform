@@ -36,6 +36,7 @@
 }
 
 .bubbleUser {
+  width: 100%;
   background: linear-gradient(135deg, #5ba3ff, #3d8bff);
   color: #fff;
   border-radius: 14px 14px 4px 14px;
