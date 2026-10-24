@@ -11,7 +11,6 @@ interface Props {
 }
 
 export default function Markdown({ content, streaming }: Props) {
-
   return (
     <div className={styles.markdown}>
       <ReactMarkdown
