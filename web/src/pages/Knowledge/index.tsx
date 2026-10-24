@@ -1,6 +1,6 @@
 import { DeleteOutlined, InboxOutlined, LoadingOutlined } from '@ant-design/icons';
-import { Button, Card, message as antdMessage, Modal, Popconfirm, Result, Spin, Steps, Table, Upload } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { Button, Card, message as antdMessage, Modal, Popconfirm, Progress, Result, Spin, Steps, Table, Upload } from 'antd';
+import { useEffect, useState } from 'react';
 import { deleteDocument, listDocuments } from '../../api/client';
 import type { DocumentInfo } from '../../types';
 import styles from './Knowledge.module.css';
@@ -19,15 +19,27 @@ interface UploadTask {
   fileType: string;
   status: 'processing' | 'success' | 'error';
   stage: number; // 0 文档解析 1 文本切分 2 向量化入库
+  embedDone: number; // 已向量化切片数（真实进度）
+  embedTotal: number; // 切片总数
   chunkCount?: number;
   error?: string;
+}
+
+// 上传接口 SSE 事件
+interface UploadEvent {
+  type: 'stage' | 'progress' | 'done' | 'error';
+  stage?: number;
+  total?: number;
+  done?: number;
+  doc_name?: string;
+  chunk_count?: number;
+  message?: string;
 }
 
 export default function KnowledgePage() {
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [task, setTask] = useState<UploadTask | null>(null);
-  const stageTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -40,35 +52,60 @@ export default function KnowledgePage() {
 
   useEffect(() => {
     void refresh();
-    return () => {
-      if (stageTimer.current) clearInterval(stageTimer.current);
-    };
   }, []);
+
+  // 消费上传接口的 SSE 事件流，驱动弹窗进度真实推进
+  const consumeUploadStream = async (resp: Response) => {
+    const reader = resp.body?.getReader();
+    if (!reader) throw new Error('浏览器不支持流式读取');
+    const decoder = new TextDecoder();
+    let buffer = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // SSE 事件以空行分隔
+      const events = buffer.split('\n\n');
+      buffer = events.pop() ?? '';
+      for (const block of events) {
+        const line = block.trim();
+        if (!line.startsWith('data: ')) continue;
+        const event: UploadEvent = JSON.parse(line.slice(6));
+        if (event.type === 'stage') {
+          setTask((t) =>
+            t ? { ...t, stage: event.stage ?? t.stage, embedTotal: event.total ?? t.embedTotal } : t,
+          );
+        } else if (event.type === 'progress') {
+          setTask((t) =>
+            t ? { ...t, embedDone: event.done ?? 0, embedTotal: event.total ?? t.embedTotal } : t,
+          );
+        } else if (event.type === 'done') {
+          setTask((t) => (t ? { ...t, status: 'success', stage: 2, chunkCount: event.chunk_count } : t));
+        } else if (event.type === 'error') {
+          setTask((t) => (t ? { ...t, status: 'error', error: event.message } : t));
+        }
+      }
+    }
+  };
 
   const handleUpload = async (file: File) => {
     const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
-    setTask({ fileName: file.name, fileType: ext, status: 'processing', stage: 0 });
-
-    // 阶段提示轮播：后端为同步接口无进度回调，仅作处理过程的视觉提示
-    let stage = 0;
-    stageTimer.current = setInterval(() => {
-      stage = Math.min(stage + 1, 2);
-      setTask((t) => (t && t.status === 'processing' ? { ...t, stage } : t));
-    }, 1500);
+    setTask({ fileName: file.name, fileType: ext, status: 'processing', stage: 0, embedDone: 0, embedTotal: 0 });
 
     try {
       const form = new FormData();
       form.append('file', file);
       const resp = await fetch('/api/knowledge/upload', { method: 'POST', body: form });
-      const body = await resp.json();
-      if (!resp.ok) throw new Error(body.detail || '上传失败');
-      setTask((t) => (t ? { ...t, status: 'success', stage: 2, chunkCount: body.chunk_count } : t));
+      if (!resp.ok) {
+        // 请求未进入流式阶段（如格式校验失败），错误信息在 JSON body 中
+        const body = await resp.json();
+        throw new Error(body.detail || '上传失败');
+      }
+      await consumeUploadStream(resp);
       await refresh();
     } catch (e) {
       const msg = e instanceof Error ? e.message : '上传失败';
       setTask((t) => (t ? { ...t, status: 'error', error: msg } : t));
-    } finally {
-      if (stageTimer.current) clearInterval(stageTimer.current);
     }
   };
 
@@ -158,7 +195,19 @@ export default function KnowledgePage() {
               },
               {
                 title: '向量化入库',
-                description: '生成 Embedding 并写入向量库',
+                description:
+                  task.embedTotal > 0 ? (
+                    <>
+                      生成 Embedding 并写入向量库（{task.embedDone}/{task.embedTotal}）
+                      <Progress
+                        percent={Math.round((task.embedDone / task.embedTotal) * 100)}
+                        size="small"
+                        showInfo={false}
+                      />
+                    </>
+                  ) : (
+                    '生成 Embedding 并写入向量库'
+                  ),
                 icon: task.stage === 2 ? <Spin indicator={<LoadingOutlined />} size="small" /> : undefined,
               },
             ]}
