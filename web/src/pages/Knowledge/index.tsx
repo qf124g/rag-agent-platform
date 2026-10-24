@@ -1,16 +1,33 @@
-import { DeleteOutlined, InboxOutlined } from '@ant-design/icons';
-import { Card, message as antdMessage, Button, Popconfirm, Table, Upload } from 'antd';
-import { useEffect, useState } from 'react';
+import { DeleteOutlined, InboxOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Button, Card, message as antdMessage, Modal, Popconfirm, Result, Spin, Steps, Table, Upload } from 'antd';
+import { useEffect, useRef, useState } from 'react';
 import { deleteDocument, listDocuments } from '../../api/client';
 import type { DocumentInfo } from '../../types';
 import styles from './Knowledge.module.css';
 
 const ACCEPT = '.txt,.md,.pdf';
 
+// 不同文件类型各自的解析文案
+const PARSE_TEXT: Record<string, string> = {
+  '.txt': '纯文本提取：读取文字内容并清理空白字符',
+  '.md': 'Markdown 解析：识别标题层级与段落结构',
+  '.pdf': 'PDF 解析：逐页提取文字内容',
+};
+
+interface UploadTask {
+  fileName: string;
+  fileType: string;
+  status: 'processing' | 'success' | 'error';
+  stage: number; // 0 文档解析 1 文本切分 2 向量化入库
+  chunkCount?: number;
+  error?: string;
+}
+
 export default function KnowledgePage() {
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [task, setTask] = useState<UploadTask | null>(null);
+  const stageTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -23,23 +40,40 @@ export default function KnowledgePage() {
 
   useEffect(() => {
     void refresh();
+    return () => {
+      if (stageTimer.current) clearInterval(stageTimer.current);
+    };
   }, []);
 
   const handleUpload = async (file: File) => {
-    setUploading(true);
+    const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+    setTask({ fileName: file.name, fileType: ext, status: 'processing', stage: 0 });
+
+    // 阶段提示轮播：后端为同步接口无进度回调，仅作处理过程的视觉提示
+    let stage = 0;
+    stageTimer.current = setInterval(() => {
+      stage = Math.min(stage + 1, 2);
+      setTask((t) => (t && t.status === 'processing' ? { ...t, stage } : t));
+    }, 1500);
+
     try {
       const form = new FormData();
       form.append('file', file);
       const resp = await fetch('/api/knowledge/upload', { method: 'POST', body: form });
       const body = await resp.json();
       if (!resp.ok) throw new Error(body.detail || '上传失败');
-      antdMessage.success(`「${body.doc_name}」入库成功，共 ${body.chunk_count} 个切片`);
+      setTask((t) => (t ? { ...t, status: 'success', stage: 2, chunkCount: body.chunk_count } : t));
       await refresh();
     } catch (e) {
-      antdMessage.error(e instanceof Error ? e.message : '上传失败');
+      const msg = e instanceof Error ? e.message : '上传失败';
+      setTask((t) => (t ? { ...t, status: 'error', error: msg } : t));
     } finally {
-      setUploading(false);
+      if (stageTimer.current) clearInterval(stageTimer.current);
     }
+  };
+
+  const closeModal = () => {
+    if (task?.status !== 'processing') setTask(null);
   };
 
   const handleDelete = async (doc: DocumentInfo) => {
@@ -48,22 +82,22 @@ export default function KnowledgePage() {
     await refresh();
   };
 
+  const processing = task?.status === 'processing';
+
   return (
     <div className={styles.page}>
       <Card title="上传文档" className={styles.card}>
         <Upload.Dragger
           accept={ACCEPT}
           showUploadList={false}
-          disabled={uploading}
+          disabled={processing}
           customRequest={({ file }) => void handleUpload(file as File)}
         >
           <p className="ant-upload-drag-icon">
             <InboxOutlined />
           </p>
           <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
-          <p className="ant-upload-hint">
-            支持 txt / md / pdf 格式，上传后自动切分并向量化入库{uploading ? '，正在处理中...' : ''}
-          </p>
+          <p className="ant-upload-hint">支持 txt / md / pdf 格式，上传后自动切分并向量化入库</p>
         </Upload.Dragger>
       </Card>
 
@@ -90,6 +124,57 @@ export default function KnowledgePage() {
           ]}
         />
       </Card>
+
+      {/* 上传解析进度弹窗：处理中不可关闭，完成后方可点击关闭 */}
+      <Modal
+        title={processing ? `正在解析：${task?.fileName}` : task?.fileName}
+        open={!!task}
+        footer={
+          processing ? null : (
+            <Button type="primary" onClick={closeModal}>
+              关闭
+            </Button>
+          )
+        }
+        closable={!processing}
+        onCancel={closeModal}
+        maskClosable={false}
+        keyboard={false}
+        width={440}
+      >
+        {task?.status === 'processing' && (
+          <Steps
+            direction="vertical"
+            current={task.stage}
+            items={[
+              {
+                title: PARSE_TEXT[task.fileType] ?? '文档解析',
+                icon: task.stage === 0 ? <Spin indicator={<LoadingOutlined />} size="small" /> : undefined,
+              },
+              {
+                title: '文本切分',
+                description: '按语义切分为知识切片',
+                icon: task.stage === 1 ? <Spin indicator={<LoadingOutlined />} size="small" /> : undefined,
+              },
+              {
+                title: '向量化入库',
+                description: '生成 Embedding 并写入向量库',
+                icon: task.stage === 2 ? <Spin indicator={<LoadingOutlined />} size="small" /> : undefined,
+              },
+            ]}
+          />
+        )}
+        {task?.status === 'success' && (
+          <Result
+            status="success"
+            title="解析完成"
+            subTitle={`「${task.fileName}」已入库，共生成 ${task.chunkCount} 个知识切片`}
+          />
+        )}
+        {task?.status === 'error' && (
+          <Result status="error" title="解析失败" subTitle={task.error} />
+        )}
+      </Modal>
     </div>
   );
 }
